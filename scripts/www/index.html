@@ -1,11 +1,538 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus</title>
-    </head>
-    <body>
-        PakePlus
-    </body>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>课堂随机点名器</title>
+    <!-- 使用更稳定的样式重置，保证各浏览器边距一致 -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            padding: 1rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 56rem;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+        h1 {
+            font-size: 1.875rem;
+            font-weight: bold;
+            text-align: center;
+            color: #1e40af;
+            margin-bottom: 1.5rem;
+        }
+        .section {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            background-color: #f9fafb;
+        }
+        .section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .pick-area {
+            background-color: #eff6ff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .name-display {
+            font-size: 5rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            min-height: 6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        @media (min-width: 768px) {
+            .name-display {
+                font-size: 8rem;
+            }
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            font-size: 1.25rem;
+            padding: 0.75rem 2rem;
+            border-radius: 9999px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: background-color 0.2s;
+        }
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-green {
+            background-color: #10b981;
+            color: white;
+            padding: 0.25rem 1rem;
+            border-radius: 0.25rem;
+        }
+        .btn-green:hover {
+            background-color: #059669;
+        }
+        .btn-blue {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+        }
+        .btn-red {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+        }
+        .class-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            border: 1px solid #d1d5db;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            background-color: white;
+        }
+        .class-item.active {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .student-table th, .student-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .student-table th {
+            background-color: #f3f4f6;
+        }
+        .delete-student {
+            color: #ef4444;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .flex {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .flex-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .input {
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            flex: 1;
+        }
+        .text-sm {
+            font-size: 0.875rem;
+        }
+        .text-gray-500 {
+            color: #6b7280;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .mt-2 {
+            margin-top: 0.5rem;
+        }
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+        .hidden {
+            display: none;
+        }
+        .max-h-96 {
+            max-height: 24rem;
+            overflow-y: auto;
+        }
+    </style>
+    <!-- SheetJS 解析 Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- Dexie 本地存储 -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>🎲 课堂随机点名器</h1>
+
+    <!-- 班级管理 -->
+    <div class="section">
+        <h2>📚 班级管理</h2>
+        <div class="flex">
+            <input type="text" id="newClassName" placeholder="新班级名称" class="input">
+            <button id="addClassBtn" class="btn-green">➕ 添加班级</button>
+        </div>
+        <div id="classList" class="flex" style="margin-top: 0.75rem;"></div>
+    </div>
+
+    <!-- 点名区 -->
+    <div class="pick-area">
+        <div id="currentClassName" class="text-sm text-gray-500 mb-2">当前班级：</div>
+        <div id="randomName" class="name-display">✨</div>
+        <button id="pickBtn" class="btn-primary" style="margin-top: 1rem;">🎤 随机点名</button>
+    </div>
+
+    <!-- 学生管理 -->
+    <div class="section">
+        <div class="flex" style="justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h2>👩‍🎓 学生名单</h2>
+            <label class="btn-blue" style="cursor: pointer;">
+                📂 导入 Excel/CSV
+                <input type="file" id="importFile" accept=".xlsx, .xls, .csv" class="hidden">
+            </label>
+        </div>
+        <div class="flex">
+            <input type="text" id="studentName" placeholder="姓名" class="input">
+            <input type="text" id="studentNo" placeholder="学号（可选）" class="input">
+            <button id="addStudentBtn" class="btn-green">➕ 添加</button>
+        </div>
+        <div id="studentList" class="max-h-96" style="margin-top: 1rem;"></div>
+        <div id="studentCount" class="text-sm text-gray-500 text-right mt-2"></div>
+    </div>
+
+    <footer class="text-sm text-gray-400 text-center mt-6">
+        数据保存在当前设备中，支持 Excel/CSV 导入（第一列姓名，第二列学号）
+    </footer>
+</div>
+
+<script>
+    // 确保 Dexie 可用
+    if (typeof Dexie === 'undefined') {
+        alert("Dexie 库加载失败，请检查网络连接");
+    }
+
+    const db = new Dexie("ClassRollDB");
+    db.version(1).stores({
+        classes: "++id, name, createdAt",
+        students: "++id, classId, name, studentNo, createdAt",
+        histories: "++id, classId, studentId, studentName, timestamp"
+    });
+
+    let currentClassId = null;
+
+    // 通用刷新
+    async function refreshAll() {
+        await refreshClassList();
+        await refreshStudentList();
+        updateCurrentClassName();
+    }
+
+    // 刷新班级列表
+    async function refreshClassList() {
+        const classes = await db.classes.toArray();
+        const container = document.getElementById("classList");
+        if (!container) return;
+
+        if (classes.length === 0) {
+            container.innerHTML = '<div class="text-sm text-gray-500">暂无班级，请先添加</div>';
+            if (currentClassId === null) {
+                const id = await db.classes.add({ name: "默认班级", createdAt: Date.now() });
+                currentClassId = id;
+                await refreshClassList();
+            }
+            return;
+        }
+
+        let html = '';
+        for (let cls of classes) {
+            const activeClass = (currentClassId === cls.id) ? 'active' : '';
+            html += `
+                <div class="class-item ${activeClass}">
+                    <button class="class-select" data-id="${cls.id}" style="background:none; border:none; cursor:pointer;">${escapeHtml(cls.name)}</button>
+                    <button class="class-delete" data-id="${cls.id}" style="color:#ef4444; background:none; border:none; cursor:pointer;">✖</button>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+
+        // 绑定事件
+        document.querySelectorAll('.class-select').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = parseInt(btn.dataset.id);
+                if (!isNaN(id)) {
+                    currentClassId = id;
+                    await refreshAll();
+                }
+            });
+        });
+        document.querySelectorAll('.class-delete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = parseInt(btn.dataset.id);
+                if (!isNaN(id) && confirm(`确定删除班级及其所有学生吗？`)) {
+                    await db.transaction('rw', db.classes, db.students, db.histories, async () => {
+                        await db.classes.delete(id);
+                        await db.students.where('classId').equals(id).delete();
+                        await db.histories.where('classId').equals(id).delete();
+                    });
+                    if (currentClassId === id) {
+                        const remaining = await db.classes.toArray();
+                        currentClassId = remaining.length ? remaining[0].id : null;
+                    }
+                    await refreshAll();
+                }
+            });
+        });
+    }
+
+    // 刷新学生列表
+    async function refreshStudentList() {
+        if (!currentClassId) {
+            document.getElementById("studentList").innerHTML = '<div class="text-gray-500 text-center py-4">请先选择班级</div>';
+            document.getElementById("studentCount").innerText = '';
+            return;
+        }
+
+        const students = await db.students.where('classId').equals(currentClassId).toArray();
+        const container = document.getElementById("studentList");
+        if (students.length === 0) {
+            container.innerHTML = '<div class="text-gray-500 text-center py-4">暂无学生，请导入或添加</div>';
+            document.getElementById("studentCount").innerText = '共 0 人';
+            return;
+        }
+
+        let html = `<table class="student-table"><thead><tr><th>姓名</th><th>学号</th><th style="width: 3rem;"></th></tr></thead><tbody>`;
+        for (let s of students) {
+            html += `
+                <tr>
+                    <td>${escapeHtml(s.name)}</td>
+                    <td>${escapeHtml(s.studentNo || '')}</td>
+                    <td><button class="delete-student" data-id="${s.id}">删除</button></td>
+                </tr>
+            `;
+        }
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        document.getElementById("studentCount").innerText = `共 ${students.length} 人`;
+
+        document.querySelectorAll('.delete-student').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = parseInt(btn.dataset.id);
+                if (id && confirm('确定删除该学生吗？')) {
+                    await db.students.delete(id);
+                    await refreshStudentList();
+                }
+            });
+        });
+    }
+
+    async function updateCurrentClassName() {
+        if (currentClassId) {
+            const cls = await db.classes.get(currentClassId);
+            document.getElementById("currentClassName").innerHTML = `当前班级：${cls ? escapeHtml(cls.name) : '未选择'}`;
+        } else {
+            document.getElementById("currentClassName").innerHTML = `当前班级：未选择`;
+        }
+    }
+
+    // 语音播报（兼容不同浏览器）
+    function speakName(name) {
+        if (!window.speechSynthesis) {
+            console.warn("浏览器不支持语音播报");
+            return;
+        }
+        // 取消正在播放的语音，避免重叠
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(name);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 0.9;
+        // 等待 voices 加载完成（部分浏览器需要延迟）
+        if (window.speechSynthesis.getVoices().length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                const voices = window.speechSynthesis.getVoices();
+                const chineseVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Tingting') || v.name.includes('Yaoyao')));
+                if (chineseVoice) utterance.voice = chineseVoice;
+                window.speechSynthesis.speak(utterance);
+            };
+        } else {
+            const voices = window.speechSynthesis.getVoices();
+            const chineseVoice = voices.find(v => v.lang.includes('zh') && (v.name.includes('Tingting') || v.name.includes('Yaoyao')));
+            if (chineseVoice) utterance.voice = chineseVoice;
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    // 随机点名
+    async function pickRandom() {
+        if (!currentClassId) {
+            alert("请先选择一个班级");
+            return;
+        }
+        const students = await db.students.where('classId').equals(currentClassId).toArray();
+        if (students.length === 0) {
+            alert("当前班级没有学生，请先导入或添加学生");
+            return;
+        }
+        const idx = Math.floor(Math.random() * students.length);
+        const student = students[idx];
+        const nameDiv = document.getElementById("randomName");
+        nameDiv.textContent = student.name;
+        nameDiv.style.transform = "scale(1.1)";
+        setTimeout(() => { nameDiv.style.transform = "scale(1)"; }, 200);
+        speakName(student.name);
+        // 记录点名历史
+        await db.histories.add({
+            classId: currentClassId,
+            studentId: student.id,
+            studentName: student.name,
+            timestamp: Date.now()
+        });
+    }
+
+    // 添加班级
+    document.getElementById("addClassBtn").addEventListener("click", async () => {
+        const nameInput = document.getElementById("newClassName");
+        const name = nameInput.value.trim();
+        if (!name) {
+            alert("请输入班级名称");
+            return;
+        }
+        const id = await db.classes.add({ name: name, createdAt: Date.now() });
+        nameInput.value = "";
+        if (!currentClassId) currentClassId = id;
+        await refreshAll();
+    });
+
+    // 添加学生
+    document.getElementById("addStudentBtn").addEventListener("click", async () => {
+        if (!currentClassId) {
+            alert("请先选择班级");
+            return;
+        }
+        const nameInput = document.getElementById("studentName");
+        const noInput = document.getElementById("studentNo");
+        const name = nameInput.value.trim();
+        if (!name) {
+            alert("请输入学生姓名");
+            return;
+        }
+        await db.students.add({
+            classId: currentClassId,
+            name: name,
+            studentNo: noInput.value.trim(),
+            createdAt: Date.now()
+        });
+        nameInput.value = "";
+        noInput.value = "";
+        await refreshStudentList();
+    });
+
+    // 导入 Excel
+    document.getElementById("importFile").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!currentClassId) {
+            alert("请先选择班级再导入");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+                if (rows.length < 2) {
+                    alert("文件至少需要两行（表头+数据）");
+                    return;
+                }
+                const students = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    const name = row[0] ? row[0].toString().trim() : "";
+                    if (name === "") continue;
+                    const studentNo = row[1] ? row[1].toString().trim() : "";
+                    students.push({ name, studentNo });
+                }
+                if (students.length === 0) {
+                    alert("未找到有效学生数据，请确保第一列为姓名");
+                    return;
+                }
+                await db.transaction('rw', db.students, async () => {
+                    for (let s of students) {
+                        await db.students.add({
+                            classId: currentClassId,
+                            name: s.name,
+                            studentNo: s.studentNo,
+                            createdAt: Date.now()
+                        });
+                    }
+                });
+                alert(`成功导入 ${students.length} 名学生`);
+                await refreshStudentList();
+            } catch (err) {
+                console.error(err);
+                alert("解析文件失败，请检查格式是否为 Excel 或 CSV");
+            } finally {
+                document.getElementById("importFile").value = "";
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById("pickBtn").addEventListener("click", pickRandom);
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // 初始化
+    (async function init() {
+        const classes = await db.classes.toArray();
+        if (classes.length === 0) {
+            const id = await db.classes.add({ name: "默认班级", createdAt: Date.now() });
+            currentClassId = id;
+        } else {
+            currentClassId = classes[0].id;
+        }
+        await refreshAll();
+    })();
+</script>
+</body>
 </html>
